@@ -1,30 +1,22 @@
+#include "test.h"
 #include <iostream>
-#include <chrono>
-#include <unordered_map>
-#include <string>
 
 // A class for tracking runtime statistics
-class RuntimeMonitor {
-private:
-    std::unordered_map<std::string, std::chrono::duration<double>> timings;
+void RuntimeMonitor::start(const std::string& funcName) {
+    timings[funcName] = std::chrono::steady_clock::now().time_since_epoch();
+}
 
-public:
-    void start(const std::string& funcName) {
-        timings[funcName] = std::chrono::steady_clock::now().time_since_epoch();
-    }
+void RuntimeMonitor::end(const std::string& funcName) {
+    auto endTime = std::chrono::steady_clock::now().time_since_epoch();
+    timings[funcName] = endTime - timings[funcName];
+}
 
-    void end(const std::string& funcName) {
-        auto endTime = std::chrono::steady_clock::now().time_since_epoch();
-        timings[funcName] = endTime - timings[funcName];
+void RuntimeMonitor::log() {
+    std::cout << "Function Runtime Statistics:\n";
+    for (const auto& [funcName, duration] : timings) {
+        std::cout << " - " << funcName << ": " << duration.count() << " seconds\n";
     }
-
-    void log() {
-        std::cout << "Function Runtime Statistics:\n";
-        for (const auto& [funcName, duration] : timings) {
-            std::cout << " - " << funcName << ": " << duration.count() << " seconds\n";
-        }
-    }
-};
+}
 
 // Global instance of the monitor
 RuntimeMonitor runtimeMonitor;
@@ -35,16 +27,7 @@ RuntimeMonitor runtimeMonitor;
 
 // Example function to instrument
 void exampleFunction() {
-    START_MONITOR(__FUNCTION__); // Start monitoring this function
+    runtimeMonitor.start(__FUNCTION__); // Start monitoring this function
     for (volatile int i = 0; i < 1000000; ++i); // Simulated workload
-    END_MONITOR(__FUNCTION__); // End monitoring this function
-}
-
-int main() {
-    exampleFunction(); // Run the instrumented function
-
-    // Log runtime statistics
-    runtimeMonitor.log();
-
-    return 0;
+    runtimeMonitor.end(__FUNCTION__); // End monitoring this function
 }
